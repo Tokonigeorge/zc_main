@@ -1,41 +1,47 @@
-import { useRef, useState, useEffect, useContext } from 'react'
-import ProfileModal from './ProfileModal'
-import { authAxios } from '../utils/Api'
+import { useRef, useState, useEffect, useContext } from "react"
+import ProfileModal from "./ProfileModal"
+import { authAxios } from "../utils/Api"
 
-import { AiFillCamera } from 'react-icons/ai'
-import defaultAvatar from '../assets/images/avatar_vct.svg'
-import { ProfileContext } from '../context/ProfileModal'
-import Loader from 'react-loader-spinner'
-import toast, { Toaster } from 'react-hot-toast'
-import { data } from '../utils/Countrycode'
-import TimezoneSelect from 'react-timezone-select'
-import { StyledProfileWrapper } from '../styles/StyledEditProfile'
+import { AiFillCamera } from "react-icons/ai"
+import defaultAvatar from "../assets/images/avatar_vct.svg"
+import { ProfileContext } from "../context/ProfileModal"
+import Loader from "react-loader-spinner"
+import toast, { Toaster } from "react-hot-toast"
+import { data } from "../utils/Countrycode"
+import TimezoneSelect from "react-timezone-select"
+import { StyledProfileWrapper } from "../styles/StyledEditProfile"
 
 const EditProfile = () => {
   const imageRef = useRef(null)
   const avatarRef = useRef(null)
-  const { user, orgId, userProfileImage, setUserProfileImage } =
-    useContext(ProfileContext)
+  const {
+    user,
+    orgId,
+    userProfileImage,
+    setUserProfileImage,
+    toggleModalState
+  } = useContext(ProfileContext)
   const [selectedTimezone, setSelectedTimezone] = useState({})
-  const [links, setLinks] = useState([''])
+  const [links, setLinks] = useState([""])
   const [state, setState] = useState({
     name: user.name,
     display_name: user.display_name,
     pronouns: user.pronouns,
     role: user.role,
     image_url: user.image_url,
-    bio: '',
+    bio: "",
     phone: user.phone,
-    prefix: '',
-    timezone: '',
-    twitter: '',
-    facebook: '',
-    loading: false
+    prefix: "",
+    timezone: "",
+    twitter: "",
+    facebook: "",
+    loading: false,
+    imageLoading: false
   })
 
   const addList = () => {
     if (links.length < 5) {
-      setLinks([...links, ''])
+      setLinks([...links, ""])
     }
   }
 
@@ -48,7 +54,7 @@ const EditProfile = () => {
   //Function handling Image Upload
 
   const handleImageChange = event => {
-    setState({ loading: true })
+    setState({ ...state, imageLoading: true })
     if (imageRef.current.files[0]) {
       let fileReader = new FileReader()
 
@@ -61,49 +67,48 @@ const EditProfile = () => {
       const imageReader = event.target.files[0]
 
       const formData = new FormData()
-      formData.append('image', imageReader)
+      formData.append("image", imageReader)
 
       authAxios
-        .patch(`/organizations/${orgId}/members/${user._id}/photo`, formData)
+        .patch(
+          `/organizations/${orgId}/members/${user._id}/photo/upload`,
+          formData
+        )
         .then(res => {
-          console.log(res)
-          newUploadedImage = res.data.data
-          setState({ loading: false })
-          setUserProfileImage(res.data.data)
-          toast.success('User Image Updated Successfully', {
-            position: 'bottom-center'
+          const newUploadedImage = res.data.data
+          setUserProfileImage(newUploadedImage)
+          setState({ ...state, imageLoading: false })
+          toast.success("User Image Updated Successfully", {
+            position: "top-center"
           })
         })
         .catch(err => {
-          console.log(err)
-          setState({ loading: false })
+          console.error(err)
+          setState({ ...state, imageLoading: false })
           toast.error(err?.message, {
-            position: 'bottom-center'
+            position: "top-center"
           })
         })
     }
   }
 
   const handleImageDelete = () => {
-    setState({ imageLoading: true })
-
-    const formData = new FormData()
-    formData.append('image', defaultAvatar)
+    setState({ ...state, imageLoading: true })
 
     authAxios
-      .patch(`/organizations/${orgId}/members/${user._id}/photo`, formData)
+      .patch(`/organizations/${orgId}/members/${user._id}/photo/delete`)
       .then(res => {
         setUserProfileImage(defaultAvatar)
-        setState({ imageLoading: false })
-        toast.success('User Image Removed Successfully', {
-          position: 'top-center'
+        setState({ ...state, imageLoading: false })
+        toast.success("User Image Removed Successfully", {
+          position: "top-center"
         })
       })
       .catch(err => {
-        console.log(err)
-        setState({ imageLoading: false })
+        console.error(err)
+        setState({ ...state, imageLoading: false })
         toast.error(err?.message, {
-          position: 'top-center'
+          position: "top-center"
         })
       })
   }
@@ -116,7 +121,7 @@ const EditProfile = () => {
 
   const handleFormSubmit = e => {
     e.preventDefault()
-    setState({ loading: true })
+    setState({ ...state, loading: true })
 
     const data = {
       name: state.name,
@@ -140,17 +145,17 @@ const EditProfile = () => {
     authAxios
       .patch(`/organizations/${orgId}/members/${user._id}/profile`, data)
       .then(res => {
-        console.log(res)
+        // console.log(res)
         setState({ loading: false })
-        toast.success('User Profile Updated Successfully', {
-          position: 'bottom-center'
+        toast.success("User Profile Updated Successfully", {
+          position: "top-center"
         })
       })
       .catch(err => {
-        console.log(err)
+        console.error(err)
         setState({ loading: false })
         toast.error(err?.message, {
-          position: 'bottom-center'
+          position: "top-center"
         })
       })
   }
@@ -165,7 +170,7 @@ const EditProfile = () => {
                 <div className="mobileAvataeCon">
                   <img
                     ref={avatarRef}
-                    src={user.image_url !== '' ? user.image_url : defaultAvatar}
+                    src={user.image_url !== "" ? user.image_url : defaultAvatar}
                     alt="profile-pic"
                     className="avatar"
                   />
@@ -328,12 +333,23 @@ const EditProfile = () => {
             </div>
             <div className="img-container">
               <div className="avatar">
-                <img
-                  ref={avatarRef}
-                  className="img"
-                  src={userProfileImage ? userProfileImage : defaultAvatar}
-                  alt="profile-pic"
-                />
+                <div className="avatar-container">
+                  {state.imageLoading ? (
+                    <Loader
+                      type="Oval"
+                      color="#00B87C"
+                      height={24}
+                      width={24}
+                    />
+                  ) : (
+                    <img
+                      ref={avatarRef}
+                      className="img"
+                      src={userProfileImage ? userProfileImage : defaultAvatar}
+                      alt="profile-pic"
+                    />
+                  )}
+                </div>
 
                 <input
                   ref={imageRef}
@@ -369,16 +385,18 @@ const EditProfile = () => {
             {state.loading ? (
               <Loader type="ThreeDots" color="#00B87C" height={24} width={24} />
             ) : (
-              'Save'
+              "Save"
             )}
           </div>
           <div className="button-wrapper">
-            <button className="btns rmvBtn">Cancel</button>
-            <button onClick={handleFormSubmit} className="btns chgBtn">
+            <button className="btns cncBtn" onClick={toggleModalState}>
+              Cancel
+            </button>
+            <button onClick={handleFormSubmit} className="btns saveBtn">
               {state.loading ? (
                 <Loader type="ThreeDots" color="#fff" height={40} width={40} />
               ) : (
-                'Save Changes'
+                "Save Changes"
               )}
             </button>
           </div>
